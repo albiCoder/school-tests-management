@@ -14,6 +14,10 @@ public class Perdorues {
 		this.password = password;
 	}
 	
+	public Perdorues(String email, String password) {
+		this.email = email;
+		this.password = password;
+	}
 	public int getId() {
 		return id;
 	}

@@ -1,9 +1,8 @@
 import java.util.ArrayList;
 import java.util.LinkedList;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.application.Application;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -23,6 +22,7 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.ComboBox;
@@ -38,163 +38,145 @@ public class View extends Application {
 	public static final int appHeight = 600;
 
 	// login form fields
-	private TextField email;
-	private PasswordField password;
-	private ComboBox<String> chooseAccountType;
 	private Perdorues loggedInUser;
-	private Button loginBtn;
-	private Text errorMessage;
-
-	// all scenes
-	private Text sceneInfoText = new Text();
-
-	// admin scene
-	Button addStaffBtn;
-	Button addStudentBtn;
-	Button listStaffBtn;
-	Button listStudentBtn;
-
-	// add new user fields
-	private TextField newUserName;
-	private TextField newUserEmail;
-	private PasswordField newUserPassword;
-
-	// add new student specific fields
-	private ComboBox<Integer> newStudentYear;
-	private Button saveNewStudentBtn;
-
-	// add new staff specific fields
-	private TextField newStaffTitle;
-	private TextField newStaffCourse;
-	private Button saveNewStaffBtn;
-
-	// log out
-	private Button signOutBtn = new Button("Dilni nga llogaria");
+	private String loginType;
 
 	public enum accountType {
 		Student, Administrator, Pedagog
 	};
 
-	public String getEmail() {
-		return email.getText();
+	public Perdorues getLoggedInUser() {
+		return loggedInUser;
 	}
 
-	public void setEmail(String email) {
-		this.email.setText(email);
+	public void setLoggedInUser(Perdorues loggedInUser) {
+		this.loggedInUser = loggedInUser;
 	}
 
-	public String getPassword() {
-		return password.getText();
-	}
-
-	public void setPassword(String password) {
-		this.password.setText(password);
+	public void setLoginType(String loginType) {
+		this.loginType = loginType;
 	}
 
 	public String getLoginType() {
-		return this.chooseAccountType.getValue().toString();
+		return this.loginType;
 	}
 
-	public String getNewUserName() {
-		return newUserName.getText();
-	}
 
-	public String getNewUserEmail() {
-		return newUserEmail.getText();
-	}
+	//
+	// Scenes
+	//
 
-	public String getNewUserPassword() {
-		return newUserPassword.getText();
-	}
+	// login
+	Scene loginScene = null;
+	// admin
+	Scene adminScene = null;
+	Scene createNewStudentScene = null;
+	Scene createNewStaffScene = null;
+	Scene listStaffScene = null;
+	Scene listStudentsScene = null;
+	// staff
+	Scene staffScene = null;
+	Scene createNewCourseScene = null;
+	Scene addingStudentsToCourseScene = null;
+	Scene messagesScene = null;
+	// student
+	Scene studentScene = null;
+	Scene testScene = null;
+	Scene coursesListScene = null;
 
-	public int getNewStudentYear() {
-		return newStudentYear.getValue();
-	}
-
-	public String getNewStaffTitle() {
-		return newStaffTitle.getText();
-	}
-
-//	public String getNewStaffCourse() {
-//		
-//		return new KursStudimi(newStaffCourse.getText());
-//	}
-
+	//
+	// gui starter
+	//
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 
-		sceneInfoText.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 25));
-		sceneInfoText.setFill(Color.BLUE);// setting color of the text to blue
-		sceneInfoText.setStroke(Color.BLUE);// setting the stroke for the text
+		// load the first scene
+		loginScene = createLoginScene(primaryStage);
 
 		//
-		// log in scene
+		// set stage
 		//
-		Scene loginScene = createLoginScene();
+		primaryStage.setScene(loginScene);
+		primaryStage.setTitle("Log in");
+		primaryStage.show();
+	}
 
-		//
-		// admin page
-		//
-		Scene adminScene = createAdminScene();
+	//
+	// Initializing scenes
+	//
 
-		//
-		// staff scene
-		//
-		Button addQuestionBtn = new Button("Krijo nje pyetje");
-		Button addTestBtn = new Button("Krijo nje test");
-		Button addStudentToCourseBtn = new Button("Shtoni nje student ne kurs");
+	public void initializeAdminScenes(Stage primaryStage) {
+		adminScene = createAdminScene(primaryStage);
+		createNewStudentScene = addStudentScene(primaryStage);
+		createNewStaffScene = addStaffScene(primaryStage);
+		listStaffScene = getUsersList("staff's members", MainClass.getStaffList(), "Titulli", "Name", "Email");
+		listStudentsScene = getUsersList("students", MainClass.getStudentsList(), "Name", "Email", "Year");
+	}
 
-		Button editStaffProfileBtn = new Button("Ndrysho profilin");
-		Button addCourseBtn = new Button("Krijo nje kurs");
-		Button showMessages = new Button("Shiko mesazhet");
+	public void initializeStaffScenes(Stage primaryStage) {
+		staffScene = createStaffScene(primaryStage);
+		createNewCourseScene = addCourseScene(primaryStage);
+		addingStudentsToCourseScene = addStudentsToCourseScene(primaryStage);
+		messagesScene = listMessagesScene(primaryStage);
+	}
 
-		VBox staffToolbars = new VBox(20);
-		staffToolbars.getChildren().addAll(editStaffProfileBtn, addCourseBtn, addStudentToCourseBtn, showMessages);
-		staffToolbars.setAlignment(Pos.CENTER);
+	public void initializeStudentScenes(Stage primaryStage) {
+		studentScene = createStudentScene(primaryStage);
+		coursesListScene = coursesListScene(primaryStage);
+	}
 
-		BorderPane staffPage = new BorderPane();
-		staffPage.setCenter(staffToolbars);
-		staffPage.setBottom(signOutBtn);
+	//
+	// Creating/adding
+	//
+	public Scene addCourseScene(Stage primaryStage) {
+		KursStudimi kursiRi = new KursStudimi();
 
-		Scene staffScene = new Scene(staffPage, appWidth, appHeight);
+		Text sceneInfoText = sceneInfoText("Kursi i ri");
 
-		//
-		// student page
-		//
-		Button editStudentProfileBtn = new Button("Ndrysho profilin");
-		editStudentProfileBtn.setOnAction(e -> {
+		TextField newCourseName = new TextField();
 
-		});
-		Button chooseTestBtn = new Button("Shfaq nje test");
-		chooseTestBtn.setOnAction(e -> {
+		Button saveCourseBtn = saveCourseButton(kursiRi, newCourseName, primaryStage);
 
-		});
-		Button listResultsBtn = new Button("Shfaq rezultatet");
-		listResultsBtn.setOnAction(e -> {
+		HBox newCourseNameFields = new HBox();
+		newCourseNameFields.getChildren().addAll(new Label("Name: "), newCourseName, saveCourseBtn);
+		newCourseNameFields.setAlignment(Pos.CENTER);
+		// test
+		TextField question = new TextField();
+		TextField newTestName = new TextField();
+		HBox newTestFields = new HBox();
+		newTestFields.setAlignment(Pos.CENTER);
+		// question
+		ToggleGroup group = new ToggleGroup();
+		RadioButton button1 = new RadioButton("Po");
+		RadioButton button2 = new RadioButton("Jo");
+		button1.setToggleGroup(group);
+		button2.setToggleGroup(group);
+		HBox newQuestionFields = new HBox();
+		newQuestionFields.setSpacing(10);
+		newQuestionFields.setAlignment(Pos.CENTER);
 
-		});
-		Button createMessageBtn = new Button("Dergo nje mesazh pedagogut");
-		listStaffBtn.setOnAction(e -> {
+		VBox createNewCourseForm = new VBox();
+		createNewCourseForm.setSpacing(20);
+		createNewCourseForm.setAlignment(Pos.CENTER);
 
-		});
+		Button saveTestBtn = saveTestButton(saveCourseBtn, newTestName);
+		Button saveQuestionBtn = saveQuestionButton(kursiRi, question, group, saveTestBtn);
+		Button saveTestNameBtn = saveTestNameButton(kursiRi, saveCourseBtn, newTestName, saveTestBtn, saveQuestionBtn);
 
-		VBox studentToolbars = new VBox(20);
-		studentToolbars.getChildren().addAll(editStudentProfileBtn, chooseTestBtn, listResultsBtn, createMessageBtn);
-		studentToolbars.setAlignment(Pos.CENTER);
+		newTestFields.getChildren().addAll(new Label("Emri testit: "), newTestName, saveTestNameBtn, saveTestBtn);
+		newQuestionFields.getChildren().addAll(new Label("Pyetja: "), question, new Label("Pergjigja: "), button1,
+				button2, saveQuestionBtn);
+		createNewCourseForm.getChildren().addAll(sceneInfoText, newCourseNameFields, newTestFields, newQuestionFields);
 
-		BorderPane studentPage = new BorderPane();
-		studentPage.setCenter(studentToolbars);
-		studentPage.setBottom(signOutBtn);
+		return new Scene(createNewCourseForm, appWidth, appHeight);
+	}
 
-		Scene studentScene = new Scene(studentPage, appWidth, appHeight);
+	public Scene addStaffScene(Stage primaryStage, String email, String name, String title) {
+		Text sceneInfoText = sceneInfoText("Plotesoni te dhenat per pedagogun e ri");
 
-		//
-		// add user components
-		//
-
-		newUserEmail = new TextField();
-		newUserPassword = new PasswordField();
-		newUserName = new TextField();
+		TextField newUserEmail = new TextField(email != null ? email : "");
+		PasswordField newUserPassword = new PasswordField();
+		TextField newUserName = new TextField(name != null ? name : "");
 
 		HBox newUserNameFields = new HBox();
 		newUserNameFields.getChildren().addAll(new Label("Name: "), newUserName);
@@ -206,56 +188,52 @@ public class View extends Application {
 		newUserPasswordFields.getChildren().addAll(new Label("Fjalekalimi: "), newUserPassword);
 		newUserPasswordFields.setAlignment(Pos.CENTER);
 
-		TextField newUserEmail1 = new TextField();
-		PasswordField newUserPassword1 = new PasswordField();
-		TextField newUserName1 = new TextField();
-
-		HBox newUserNameFields1 = new HBox();
-		newUserNameFields1.getChildren().addAll(new Label("Name: "), newUserName1);
-		newUserNameFields1.setAlignment(Pos.CENTER);
-		HBox newUserEmailFields1 = new HBox();
-		newUserEmailFields1.getChildren().addAll(new Label("Email: "), newUserEmail1);
-		newUserEmailFields1.setAlignment(Pos.CENTER);
-		HBox newUserPasswordFields1 = new HBox();
-		newUserPasswordFields1.getChildren().addAll(new Label("Fjalekalimi: "), newUserPassword1);
-		newUserPasswordFields1.setAlignment(Pos.CENTER);
-
-		//
-		// add staff scene
-		//
-		sceneInfoText.setText("Plotesoni te dhenat per pedagogun e ri");
-
-		newStaffTitle = new TextField();
-		newStaffCourse = new TextField();
+		TextField newStaffTitle = new TextField(title != null ? title : "");
 
 		HBox newStaffTitleFields = new HBox();
 		newStaffTitleFields.getChildren().addAll(new Label("Title: "), newStaffTitle);
 		newStaffTitleFields.setAlignment(Pos.CENTER);
 
-		saveNewStaffBtn = new Button("Ruani te dhenat");
+		Button saveNewStaffBtn = saveNewStaffButton(primaryStage, newUserEmail, newUserPassword, newUserName,
+				newStaffTitle);
 
 		VBox createNewStaffForm = new VBox();
-		createNewStaffForm.getChildren().addAll(newUserNameFields1, newUserEmailFields1, newUserPasswordFields1,
+		createNewStaffForm.getChildren().addAll(newUserNameFields, newUserEmailFields, newUserPasswordFields,
 				newStaffTitleFields, saveNewStaffBtn);
 		createNewStaffForm.setSpacing(20);
 		createNewStaffForm.setAlignment(Pos.CENTER);
 
-		Scene createNewStaffScene = new Scene(createNewStaffForm, appWidth, appHeight);
+		return new Scene(createNewStaffForm, appWidth, appHeight);
 
-		//
-		// add student scene
-		//
-		sceneInfoText.setText("Plotesoni te dhenat per studentin e ri");
+	}
 
-		newStudentYear = new ComboBox<>();
+	public Scene addStudentScene(Stage primaryStage, String email, String name, Integer year) {
+		Text sceneInfoText = sceneInfoText("Plotesoni te dhenat per studentin e ri");
+
+		TextField newUserEmail = new TextField(email != null ? email : "");
+		PasswordField newUserPassword = new PasswordField();
+		TextField newUserName = new TextField(name != null ? name : "");
+
+		HBox newUserNameFields = new HBox();
+		newUserNameFields.getChildren().addAll(new Label("Name: "), newUserName);
+		newUserNameFields.setAlignment(Pos.CENTER);
+		HBox newUserEmailFields = new HBox();
+		newUserEmailFields.getChildren().addAll(new Label("Email: "), newUserEmail);
+		newUserEmailFields.setAlignment(Pos.CENTER);
+		HBox newUserPasswordFields = new HBox();
+		newUserPasswordFields.getChildren().addAll(new Label("Fjalekalimi: "), newUserPassword);
+		newUserPasswordFields.setAlignment(Pos.CENTER);
+
+		ComboBox<Integer> newStudentYear = new ComboBox<>();
 		newStudentYear.getItems().addAll(1, 2, 3, 4, 5);
-		newStudentYear.setValue(1);
+		newStudentYear.setValue(year != null ? year : 1);
 
 		HBox newStudentYearFields = new HBox();
 		newStudentYearFields.getChildren().addAll(new Label("Year: "), newStudentYear);
 		newStudentYearFields.setAlignment(Pos.CENTER);
 
-		saveNewStudentBtn = new Button("Ruani te dhenat");
+		Button saveNewStudentBtn = saveNewStudentButton(primaryStage, newUserEmail, newUserPassword, newUserName,
+				newStudentYear);
 
 		VBox createNewStudentForm = new VBox();
 		createNewStudentForm.getChildren().addAll(newUserNameFields, newUserEmailFields, newUserPasswordFields,
@@ -263,69 +241,11 @@ public class View extends Application {
 		createNewStudentForm.setSpacing(20);
 		createNewStudentForm.setAlignment(Pos.CENTER);
 
-		Scene createNewStudentScene = new Scene(createNewStudentForm, appWidth, appHeight);
+		return new Scene(createNewStudentForm, appWidth, appHeight);
 
-		//
-		// list staff members
-		//
+	}
 
-		Scene listStaffScene = getUsersList(sceneInfoText, "staff's members", MainClass.getStaffList(), "Titulli",
-				"Name", "Email");
-
-		//
-		// list students members
-		//
-
-		Scene listStudentsScene = getUsersList(sceneInfoText, "students", MainClass.getStudentsList(), "Name", "Email",
-				"Year");
-
-		//
-		// create course scene
-		//
-		// course
-		sceneInfoText.setText("Kursi i ri");
-		TextField newCourseName = new TextField();
-		Button saveCourseBtn = new Button("Ruani kursin");
-		saveCourseBtn.setDisable(true);
-
-		HBox newCourseNameFields = new HBox();
-		newCourseNameFields.getChildren().addAll(new Label("Name: "), newCourseName, saveCourseBtn);
-		newCourseNameFields.setAlignment(Pos.CENTER);
-		// test
-		TextField newTestName = new TextField();
-		Button saveTestNameBtn = new Button("Ruani emrin e testit");
-		Button saveTestBtn = new Button("Ruani testin");
-		saveTestBtn.setDisable(true);
-		HBox newTestFields = new HBox();
-		newTestFields.getChildren().addAll(new Label("Emri testit: "), newTestName, saveTestNameBtn, saveTestBtn);
-		newTestFields.setAlignment(Pos.CENTER);
-		// question
-		TextField question = new TextField();
-		ToggleGroup group = new ToggleGroup();
-		RadioButton button1 = new RadioButton("Po");
-		RadioButton button2 = new RadioButton("Jo");
-		button1.setToggleGroup(group);
-		button2.setToggleGroup(group);
-		Button saveQuestionBtn = new Button("Ruani pyetjen");
-		saveQuestionBtn.setDisable(true);
-		HBox newQuestionFields = new HBox();
-		newQuestionFields.setSpacing(10);
-		newQuestionFields.getChildren().addAll(new Label("Pyetja: "), question, new Label("Pergjigja: "), button1,
-				button2, saveQuestionBtn);
-		newQuestionFields.setAlignment(Pos.CENTER);
-
-		VBox createNewCourseForm = new VBox();
-		createNewCourseForm.getChildren().addAll(sceneInfoText, newCourseNameFields, newTestFields, newQuestionFields);
-		createNewCourseForm.setSpacing(20);
-		createNewCourseForm.setAlignment(Pos.CENTER);
-
-		Scene createNewCourseScene = new Scene(createNewCourseForm, appWidth, appHeight);
-
-		KursStudimi kursiRi = new KursStudimi();
-
-		//
-		// add students to a course scene
-		//
+	public Scene addStudentsToCourseScene(Stage primaryStage) {
 		Text txt = new Text("Shtoni student ne nje kurs");
 		txt.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 25));
 		txt.setFill(Color.BLUE);// setting color of the text to blue
@@ -338,15 +258,13 @@ public class View extends Application {
 			chooseCourse.getItems().add(coursesList[i]);
 		}
 		chooseCourse.setValue(coursesList[0]);
-		
+
 //		ArrayList<KursStudimi> coursesList = MainClass.getStaffCourses(2);
 //		for (int i = 0; i < coursesList.size(); i++) {
 //			chooseCourse.getItems().addAll((Collection<? extends String>) coursesList.get(i));
 //		}
 //		chooseCourse.setValue(coursesList.get(0).getEmriKursit());
 
-		Button addStudentsToCourseBtn = new Button("Shtoni studentet e zgjedhur ne kurs");
-		
 		TableView<Student> table = new TableView<>();
 		ObservableList<Student> data = FXCollections.observableArrayList(MainClass.getStudentsList());
 
@@ -361,18 +279,9 @@ public class View extends Application {
 		checkBoxCol.setCellValueFactory(new PropertyValueFactory<Student, Boolean>("selected"));
 		checkBoxCol.setCellFactory(CheckBoxTableCell.forTableColumn(checkBoxCol));
 		checkBoxCol.setEditable(true);
-		
+
 		ArrayList<Integer> idList = new ArrayList<>();
-		addStudentsToCourseBtn.setOnAction(actionEvent -> {
-			idList.clear();
-	        for (int row = 0; row < table.getItems().size(); row++) {
-	            if(checkBoxCol.getCellData(row)) {
-	            	idList.add(tableCol1.getCellData(row));
-	            }
-	        }
-	        System.out.println(idList);
-	        MainClass.addStudentsToCourse(idList, chooseCourse.getValue());
-	    });
+		Button addStudentsToCourseBtn = addStudentsToCourseButton(chooseCourse, table, tableCol1, checkBoxCol, idList);
 
 		table.setItems(data);
 		table.getColumns().addAll(tableCol1, tableCol2, checkBoxCol);
@@ -382,182 +291,15 @@ public class View extends Application {
 		vbox.setPadding(new Insets(10, 0, 0, 10));
 		vbox.getChildren().addAll(txt, chooseCourse, addStudentsToCourseBtn, table);
 
-		Scene addingStudentsToCourseScene = new Scene(vbox, appWidth, appHeight);
-		
-		
-		//
-		// display messages scene
-		//
-		Text mssText;
-		TableView<Mesazh> messagesTable;
-		ObservableList<Mesazh> messages;
-		TableColumn<Mesazh, Integer> messageId;
-		TableColumn<Mesazh, String> studentName;
-		TableColumn<Mesazh, String> messageContent;
-		VBox messagesContainer;
-		mssText = new Text("Mesazhet tuaja");
-		mssText.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 25));
-		mssText.setFill(Color.BLUE);// setting color of the text to blue
-		mssText.setStroke(Color.BLUE);// setting the stroke for the text
-
-		
-		messagesTable = new TableView<>();
-		// problem. Funksioni poshte duhet thirrur pas klikimit te butonin shfaqe mesazhet
-		//
-		messages = FXCollections.observableArrayList(MainClass.getMessagesList(2));
-
-		messagesTable.setEditable(true);
-		messagesTable.setMaxWidth(300);
-
-		messageId = new TableColumn<>("Id");
-		messageId.setCellValueFactory(new PropertyValueFactory<Mesazh, Integer>("mesazhId"));
-		studentName = new TableColumn<>("Studenti");
-		studentName.setCellValueFactory(new PropertyValueFactory<Mesazh, String>("studentName"));
-		messageContent = new TableColumn<>("Mesazhi");
-		messageContent.setCellValueFactory(new PropertyValueFactory<Mesazh, String>("mesazhi"));
-		
-		messagesTable.setItems(messages);
-		messagesTable.getColumns().addAll(messageId, studentName, messageContent);
-
-		messagesContainer = new VBox();
-		messagesContainer.setSpacing(5);
-		messagesContainer.setPadding(new Insets(10, 0, 0, 10));
-		messagesContainer.getChildren().addAll(mssText, messagesTable);
-
-		Scene messagesScene = new Scene(messagesContainer, appWidth, appHeight);
-
-		
-		//
-		//
-		// set handlers
-		//
-		//
-
-		// all
-		loginBtn.setOnAction(e -> {
-			loggedInUser = MainClass.logIntoSystem(getLoginType(), getEmail(), getPassword());
-			if (loggedInUser != null) {
-				if (getLoginType() == "Administrator") {
-					primaryStage.setScene(adminScene);
-				} else if (getLoginType() == "Student") {
-					primaryStage.setScene(studentScene);
-				} else if (getLoginType() == "Pedagog") {
-					primaryStage.setScene(staffScene);
-				}
-			} else {
-				errorMessage.setVisible(true);
-			}
-		});
-
-		// admin
-		addStaffBtn.setOnAction(e -> {
-			primaryStage.setScene(createNewStaffScene);
-		});
-
-		addStudentBtn.setOnAction(e -> {
-			primaryStage.setScene(createNewStudentScene);
-		});
-
-		listStaffBtn.setOnAction(e -> {
-			primaryStage.setScene(listStaffScene);
-		});
-
-		listStudentBtn.setOnAction(e -> {
-			primaryStage.setScene(listStudentsScene);
-		});
-
-		saveNewStaffBtn.setOnAction(e -> {
-//			 duhet krijuar kursi perpara pedagogut
-			Pedagog newStaff = new Pedagog(getNewUserName(), getNewUserEmail(), getNewUserPassword(),
-					getNewStaffTitle());
-			MainClass.createNewStaff(newStaff);
-			primaryStage.setScene(adminScene);
-		});
-
-		saveNewStudentBtn.setOnAction(e -> {
-			Student newStudent = new Student(getNewUserName(), getNewUserEmail(), getNewUserPassword(),
-					getNewStudentYear());
-			MainClass.createNewStudent(newStudent);
-			primaryStage.setScene(adminScene);
-		});
-
-		signOutBtn.setOnAction(e -> {
-			primaryStage.setScene(loginScene);
-		});
-
-		// staff
-		editStaffProfileBtn.setOnAction(e -> {
-			Pedagog user = (Pedagog) loggedInUser;
-			primaryStage.setScene(createNewStaffScene);
-//			System.out.println(newUserEmail1 == null);
-//			newUserEmail1.setText(user.getEmail());
-//			newUserPassword1.setText(user.getPassword());
-//			newUserName1.setText(user.getName());
-//			newStaffTitle.setText(user.getTitulli());
-//			newStaffCourse.setText(user.getKursStudimi());
-		});
-
-		//
-		// creating new course handlers
-		//
-		saveTestNameBtn.setOnAction(e -> {
-			kursiRi.getTests().addFirst(new Test(newTestName.getText()));
-			saveCourseBtn.setDisable(true);
-			saveTestBtn.setDisable(true);
-			newTestName.setDisable(true);
-			saveQuestionBtn.setDisable(false);
-		});
-		addCourseBtn.setOnAction(e -> {
-			primaryStage.setScene(createNewCourseScene);
-		});
-
-		saveQuestionBtn.setOnAction(e -> {
-			// ruajme pyetjen
-			Pyetje q = new Pyetje(question.getText(), getAnswer(group));
-
-			kursiRi.getTests().getFirst().getPyetje().addFirst(q);
-
-			saveTestBtn.setDisable(false);
-			// reset the question
-			question.setText("");
-		});
-
-		saveTestBtn.setOnAction(e -> {
-			saveCourseBtn.setDisable(false);
-			newTestName.setDisable(false);
-			newTestName.setText("");
-		});
-
-		saveCourseBtn.setOnAction(e -> {
-			kursiRi.setEmriKursit(newCourseName.getText());
-			MainClass.addCourseToStaff(kursiRi, getLoginType(), (Pedagog) loggedInUser);
-			primaryStage.setScene(staffScene);
-			newCourseName.setText("");
-		});
-
-		addStudentToCourseBtn.setOnAction(e -> {
-
-			primaryStage.setScene(addingStudentsToCourseScene);
-
-		});
-		showMessages.setOnAction(e -> {
-			primaryStage.setScene(messagesScene);
-
-		});
-
-		//
-		// set stage
-		//
-		primaryStage.setScene(loginScene);
-		primaryStage.setTitle("Log in");
-		primaryStage.show();
+		return new Scene(vbox, appWidth, appHeight);
 	}
 
-	public Scene createAdminScene() {
-		addStaffBtn = new Button("Shto pedagog te ri");
-		addStudentBtn = new Button("Shto student te ri");
-		listStaffBtn = new Button("Afisho listen e pedagogeve");
-		listStudentBtn = new Button("Afisho listen e studenteve");
+	public Scene createAdminScene(Stage primaryStage) {
+		Button addStaffBtn = addStaffButton(primaryStage);
+		Button addStudentBtn = addStudentButton(primaryStage);
+		Button listStaffBtn = listStaffButton(primaryStage);
+		Button listStudentBtn = listStudentsButton(primaryStage);
+		Button signOutBtn = signOutButton(primaryStage);
 
 		VBox adminToolbars = new VBox(20);
 		adminToolbars.getChildren().addAll(addStaffBtn, addStudentBtn, listStaffBtn, listStudentBtn);
@@ -571,27 +313,20 @@ public class View extends Application {
 		return adminScene;
 	}
 
-	public Scene createLoginScene() {
-		Text loginText = new Text("Hyni ne llogari!");
-		loginText.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 35));
-		loginText.setFill(Color.GREEN);// setting color of the text to blue
-		loginText.setStroke(Color.GREEN);// setting the stroke for the text
+	public Scene createLoginScene(Stage primaryStage) {
 
-		email = new TextField();
+		Text text = sceneLoginText("Hyni ne llogari!");
+		Text errorMessage = sceneErrorText("No account with this email and password");
 
-		password = new PasswordField();
+		TextField email = new TextField();
+		PasswordField password = new PasswordField();
 
-		chooseAccountType = new ComboBox<>();
+		ComboBox<String> chooseAccountType = new ComboBox<>();
 		chooseAccountType.getItems().addAll(accountType.Student.toString(), accountType.Pedagog.toString(),
 				accountType.Administrator.toString());
-		chooseAccountType.setValue(accountType.Pedagog.toString());
+		chooseAccountType.setValue(accountType.Student.toString());
 
-		loginBtn = new Button("Logohuni");
-
-		errorMessage = new Text("No account with this email and password");
-		errorMessage.setFill(Color.RED);
-		errorMessage.setStroke(Color.RED);
-		errorMessage.setVisible(false);
+		Button loginBtn = loginButton(primaryStage, errorMessage, email, password, chooseAccountType);
 
 		HBox emailFields = new HBox();
 		emailFields.getChildren().addAll(new Label("Email: "), email);
@@ -601,18 +336,151 @@ public class View extends Application {
 		passwordFields.setAlignment(Pos.CENTER);
 
 		VBox loginForm = new VBox();
-		loginForm.getChildren().addAll(loginText, emailFields, passwordFields, chooseAccountType, loginBtn,
-				errorMessage);
+		loginForm.getChildren().addAll(text, emailFields, passwordFields, chooseAccountType, loginBtn, errorMessage);
 		loginForm.setSpacing(20);
 		loginForm.setAlignment(Pos.CENTER);
 
-		Scene loginScene = new Scene(loginForm, appWidth, appHeight);
-		return loginScene;
+		return new Scene(loginForm, appWidth, appHeight);
 	}
 
-	public <T> Scene getUsersList(Text sceneInfoText, String text, ArrayList<T> list, String Col1, String Col2,
-			String Col3) {
-		sceneInfoText.setText("All " + text);
+	public Scene createStaffScene(Stage primaryStage) {
+		Button editStaffProfileBtn = editStaffProfileButton(primaryStage);
+		Button addStudentToCourseBtn = addStudentToCourseButton(primaryStage);
+		Button addCourseBtn = addCourseButton(primaryStage);
+		Button showMessages = showMessagesButton(primaryStage);
+
+		VBox staffToolbars = new VBox(20);
+		staffToolbars.getChildren().addAll(editStaffProfileBtn, addCourseBtn, addStudentToCourseBtn, showMessages);
+		staffToolbars.setAlignment(Pos.CENTER);
+
+		BorderPane staffPage = new BorderPane();
+		staffPage.setCenter(staffToolbars);
+//		staffPage.setBottom(signOutBtn);
+
+		return new Scene(staffPage, appWidth, appHeight);
+	}
+
+	public Scene createStudentScene(Stage primaryStage) {
+
+		Button editStudentProfileBtn = new Button("Ndrysho profilin");
+		editStudentProfileBtn.setOnAction(e -> {
+
+		});
+		Button chooseTestBtn = new Button("Zgjidhni nje test");
+		chooseTestBtn.setOnAction(e -> {
+			primaryStage.setScene(coursesListScene);
+
+		});
+		Button listResultsBtn = new Button("Shfaq rezultatet");
+		listResultsBtn.setOnAction(e -> {
+
+		});
+		Button createMessageBtn = new Button("Dergo nje mesazh pedagogut");
+		createMessageBtn.setOnAction(e -> {
+
+		});
+
+		VBox studentToolbars = new VBox(20);
+		studentToolbars.getChildren().addAll(editStudentProfileBtn, chooseTestBtn, listResultsBtn, createMessageBtn);
+		studentToolbars.setAlignment(Pos.CENTER);
+
+		BorderPane studentPage = new BorderPane();
+		studentPage.setCenter(studentToolbars);
+//		studentPage.setBottom(signOutBtn);
+
+		return new Scene(studentPage, appWidth, appHeight);
+
+	}
+
+	//
+	// listing
+	//
+
+	public Scene listMessagesScene(Stage primaryStage) {
+		Text mssText = sceneInfoText("Mesazhet tuaja");
+
+		TableView<Mesazh> messagesTable = new TableView<>();
+		// problem. Funksioni poshte duhet thirrur pas klikimit te butonin shfaqe
+		// mesazhet
+		//
+		ObservableList<Mesazh> messages = FXCollections.observableArrayList(MainClass.getMessagesList(2));
+
+		messagesTable.setEditable(true);
+		messagesTable.setMaxWidth(300);
+
+		TableColumn<Mesazh, Integer> messageId = new TableColumn<>("Id");
+		messageId.setCellValueFactory(new PropertyValueFactory<Mesazh, Integer>("mesazhId"));
+		TableColumn<Mesazh, String> studentName = new TableColumn<>("Studenti");
+		studentName.setCellValueFactory(new PropertyValueFactory<Mesazh, String>("studentName"));
+		TableColumn<Mesazh, String> messageContent = new TableColumn<>("Mesazhi");
+		messageContent.setCellValueFactory(new PropertyValueFactory<Mesazh, String>("mesazhi"));
+
+		messagesTable.setItems(messages);
+		messagesTable.getColumns().addAll(messageId, studentName, messageContent);
+
+		VBox messagesContainer = new VBox();
+		messagesContainer.setSpacing(5);
+		messagesContainer.setPadding(new Insets(10, 0, 0, 10));
+		messagesContainer.getChildren().addAll(mssText, messagesTable);
+
+		return new Scene(messagesContainer, appWidth, appHeight);
+
+	}
+
+	public Scene coursesListScene(Stage primaryStage) {
+		TableView<KursStudimi> enrolledCourseTbl = new TableView<>();
+		ObservableList<KursStudimi> enrolledCourseData = FXCollections
+				.observableArrayList(MainClass.getStudentCoursesList(2));
+
+		enrolledCourseTbl.setEditable(true);
+		enrolledCourseTbl.setMaxWidth(300);
+
+		TableColumn<KursStudimi, Integer> courseIDCol = new TableColumn<>("Id");
+		courseIDCol.setCellValueFactory(new PropertyValueFactory<KursStudimi, Integer>("kursId"));
+		TableColumn<KursStudimi, String> courseNameCol = new TableColumn<>("Course Name");
+		courseNameCol.setCellValueFactory(new PropertyValueFactory<KursStudimi, String>("emriKursit"));
+
+		enrolledCourseTbl.setItems(enrolledCourseData);
+		enrolledCourseTbl.getColumns().addAll(courseIDCol, courseNameCol);
+
+		VBox tests = new VBox();
+		VBox courseAndTests = new VBox();
+		courseAndTests.getChildren().addAll(enrolledCourseTbl, tests);
+
+		this.<KursStudimi>addButtonToTable(enrolledCourseTbl, "Shfaq Testet", tests, "CourseListTable", primaryStage);
+
+		// tests list
+
+		return new Scene(courseAndTests, appWidth, appHeight);
+
+	}
+
+	private void listCourseTests(int kursId, VBox tests, Stage primaryStage) {
+		ArrayList<Test> testsList = MainClass.getCourseTests(kursId);
+
+		tests.getChildren().clear();
+		tests.getChildren().add(new Text("Testet per kete kurs: "));
+
+		TableView<Test> enrolledTestsTbl = new TableView<>();
+		ObservableList<Test> enrolledTestsData = FXCollections.observableArrayList(MainClass.getCourseTests(kursId));
+
+		enrolledTestsTbl.setEditable(true);
+		enrolledTestsTbl.setMaxWidth(300);
+
+		TableColumn<Test, Integer> testIdCol = new TableColumn<>("Id");
+		testIdCol.setCellValueFactory(new PropertyValueFactory<Test, Integer>("testId"));
+		TableColumn<Test, String> testNameCol = new TableColumn<>("Test Name");
+		testNameCol.setCellValueFactory(new PropertyValueFactory<Test, String>("emertimiTestit"));
+
+		enrolledTestsTbl.setItems(enrolledTestsData);
+		enrolledTestsTbl.getColumns().addAll(testIdCol, testNameCol);
+
+		tests.getChildren().addAll(enrolledTestsTbl);
+		this.<Test>addButtonToTable(enrolledTestsTbl, "Zgjidhni Testin", tests, "TestListTable", primaryStage);
+	}
+
+	public <T> Scene getUsersList(String text, ArrayList<T> list, String Col1, String Col2, String Col3) {
+		Text sceneInfoText = sceneInfoText("All " + text);
 
 		TableView<T> table = new TableView<>();
 		ObservableList<T> data = FXCollections.observableArrayList(list);
@@ -640,6 +508,50 @@ public class View extends Application {
 		return listingScene;
 	}
 
+	private void openTestScene(int testId, Stage primaryStage) {
+		Test test = new Test();
+		test.setPyetjet(MainClass.getTest(testId));
+
+		VBox vbox = new VBox();
+
+		TableView<Pyetje> questionsTbl = new TableView<>();
+		ObservableList<Pyetje> questionsData = FXCollections.observableArrayList(MainClass.getTest(testId));
+
+		questionsTbl.setEditable(true);
+		questionsTbl.setMaxWidth(300);
+
+		TableColumn<Pyetje, String> questionCol = new TableColumn<>("Pyetja");
+		questionCol.setCellValueFactory(new PropertyValueFactory<Pyetje, String>("pyetja"));
+		TableColumn<Pyetje, Boolean> answerCol = new TableColumn<>("Pergjigja");
+		answerCol.setCellValueFactory(new PropertyValueFactory<Pyetje, Boolean>("selected"));
+		answerCol.setCellFactory(CheckBoxTableCell.forTableColumn(answerCol));
+		answerCol.setEditable(true);
+
+		Button submitTest = new Button("Perfundoni testin");
+
+		ArrayList<Integer> answersList = new ArrayList<>();
+		submitTest.setOnAction(actionEvent -> {
+			answersList.clear();
+			for (int row = 0; row < questionsTbl.getItems().size(); row++) {
+				answersList.add(answerCol.getCellData(row) ? 1 : 0);
+			}
+
+			String result = getTestPoints(answersList, MainClass.getTest(testId));
+			vbox.getChildren().add(new Label("Rezultati juaj: " + result));
+		});
+
+		questionsTbl.setItems(questionsData);
+		questionsTbl.getColumns().addAll(questionCol, answerCol);
+
+		vbox.getChildren().addAll(questionsTbl, submitTest);
+		testScene = new Scene(vbox, appWidth, appHeight);
+		primaryStage.setScene(testScene);
+	}
+
+	//
+	// table formating
+	//
+
 	public static int getAnswer(ToggleGroup group) {
 		String pergjigja = ((RadioButton) group.getSelectedToggle()).getText();
 		if (pergjigja == "Po")
@@ -648,6 +560,313 @@ public class View extends Application {
 			return 0;
 		return 0;
 	}
+
+	private String getTestPoints(ArrayList<Integer> answersList, LinkedList<Pyetje> questions) {
+		final int POINT_PER_QUESTION = 1;
+		final int TOTAL_POINTS = POINT_PER_QUESTION * questions.size();
+
+		int testScore = 0;
+		for (int i = 0; i < questions.size(); i++) {
+			if (answersList.get(i) == questions.get(i).getPergjigjja()) {
+				testScore++;
+			}
+		}
+
+		return "" + testScore + "/" + TOTAL_POINTS;
+	}
+
+	public int getRowId(String data) {
+		int kursId = -1;
+		Pattern p = Pattern.compile("\\d+");
+		try {
+			Matcher m = p.matcher(data);
+			if (m.find()) {
+				kursId = Integer.parseInt(m.group());
+			}
+		} catch (Exception ex) {
+
+		}
+		return kursId;
+	}
+
+	private <T> void addButtonToTable(TableView table, String buttonText, VBox tests, String tableName,
+			Stage primaryStage) {
+		TableColumn<T, Void> colBtn = new TableColumn("Button Column");
+
+		Callback<TableColumn<T, Void>, TableCell<T, Void>> cellFactory = new Callback<TableColumn<T, Void>, TableCell<T, Void>>() {
+			@Override
+			public TableCell<T, Void> call(final TableColumn<T, Void> param) {
+				final TableCell<T, Void> cell = new TableCell<T, Void>() {
+
+					private final Button btn = new Button(buttonText);
+
+					{
+						btn.setOnAction(e -> {
+							String data = getTableView().getItems().get(getIndex()).toString();
+							int id = getRowId(data);
+
+							if (tableName == "CourseListTable")
+								listCourseTests(id, tests, primaryStage);
+							else
+								openTestScene(id, primaryStage);
+
+						});
+					}
+
+					@Override
+					public void updateItem(Void item, boolean empty) {
+						super.updateItem(item, empty);
+						if (empty) {
+							setGraphic(null);
+						} else {
+							setGraphic(btn);
+						}
+					}
+				};
+				return cell;
+			}
+		};
+
+		colBtn.setCellFactory(cellFactory);
+
+		table.getColumns().add(colBtn);
+
+	}
+
+	//
+	// text format
+	//
+
+	public Text sceneLoginText(String str) {
+		Text text = new Text(str);
+		text.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 35));
+		text.setFill(Color.GREEN);// setting color of the text to blue
+		text.setStroke(Color.GREEN);// setting the stroke for the text
+		return text;
+	}
+
+	public Text sceneErrorText(String str) {
+		Text errorMessage = new Text(str);
+		errorMessage.setFill(Color.RED);
+		errorMessage.setStroke(Color.RED);
+		errorMessage.setVisible(false);
+		return errorMessage;
+	}
+
+	public Text sceneInfoText(String str) {
+		Text sceneInfoText = new Text(str);
+		sceneInfoText.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 25));
+		sceneInfoText.setFill(Color.BLUE);// setting color of the text to blue
+		sceneInfoText.setStroke(Color.BLUE);// setting the stroke for the text
+		return sceneInfoText;
+	}
+
+	//
+	// Buttons
+	//
+	public Button loginButton(Stage primaryStage, Text errorMessage, TextField email, PasswordField password,
+			ComboBox<String> chooseAccountType) {
+		Button loginBtn = new Button("Logohuni");
+		loginBtn.setOnAction(e -> {
+			loggedInUser = MainClass.logIntoSystem(chooseAccountType.getValue(), email.getText(), password.getText());
+			if (loggedInUser != null) {
+				if (chooseAccountType.getValue() == "Administrator") {
+					initializeAdminScenes(primaryStage);
+					primaryStage.setScene(adminScene);
+				} else if (chooseAccountType.getValue() == "Student") {
+					initializeStudentScenes(primaryStage);
+					primaryStage.setScene(studentScene);
+				} else if (chooseAccountType.getValue() == "Pedagog") {
+					initializeStaffScenes(primaryStage);
+					primaryStage.setScene(staffScene);
+				}
+			} else {
+				errorMessage.setVisible(true);
+			}
+		});
+		return loginBtn;
+	}
+
+	public Button saveTestNameButton(KursStudimi kursiRi, Button saveCourseBtn, TextField newTestName,
+			Button saveTestBtn, Button saveQuestionBtn) {
+		Button saveTestNameBtn = new Button("Ruani emrin e testit");
+		saveTestNameBtn.setOnAction(e -> {
+			kursiRi.getTests().addFirst(new Test(newTestName.getText()));
+			saveCourseBtn.setDisable(true);
+			saveTestBtn.setDisable(true);
+			newTestName.setDisable(true);
+			saveQuestionBtn.setDisable(false);
+		});
+		return saveTestNameBtn;
+	}
+
+	public Button saveQuestionButton(KursStudimi kursiRi, TextField question, ToggleGroup group, Button saveTestBtn) {
+		Button saveQuestionBtn = new Button("Ruani pyetjen");
+		saveQuestionBtn.setOnAction(e -> {
+			// ruajme pyetjen
+			Pyetje q = new Pyetje(question.getText(), getAnswer(group));
+
+			kursiRi.getTests().getFirst().getPyetje().addFirst(q);
+
+			saveTestBtn.setDisable(false);
+			// reset the question
+			question.setText("");
+		});
+		saveQuestionBtn.setDisable(true);
+		return saveQuestionBtn;
+	}
+
+	public Button saveTestButton(Button saveCourseBtn, TextField newTestName) {
+		Button saveTestBtn = new Button("Ruani testin");
+		saveTestBtn.setOnAction(e -> {
+			saveCourseBtn.setDisable(false);
+			newTestName.setDisable(false);
+			newTestName.setText("");
+		});
+		saveTestBtn.setDisable(true);
+		return saveTestBtn;
+	}
+
+	public Button saveCourseButton(KursStudimi kursiRi, TextField newCourseName, Stage primaryStage) {
+		Button saveCourseBtn = new Button("Ruani kursin");
+		saveCourseBtn.setDisable(true);
+		saveCourseBtn.setOnAction(e -> {
+			kursiRi.setEmriKursit(newCourseName.getText());
+			MainClass.addCourseToStaff(kursiRi, getLoginType(), (Pedagog) loggedInUser);
+			primaryStage.setScene(staffScene);
+			newCourseName.setText("");
+		});
+		return saveCourseBtn;
+	}
+
+	public Button saveNewStaffButton(Stage primaryStage, TextField newUserEmail, PasswordField newUserPassword,
+			TextField newUserName, TextField newStaffTitle) {
+		Button saveNewStaffBtn = new Button("Ruani te dhenat");
+
+		saveNewStaffBtn.setOnAction(e -> {
+//			 duhet krijuar kursi perpara pedagogut
+			Pedagog newStaff = new Pedagog(newUserName.getText(), newUserEmail.getText(), newUserPassword.getText(),
+					newStaffTitle.getText());
+			MainClass.createNewStaff(newStaff);
+			primaryStage.setScene(adminScene);
+		});
+		return saveNewStaffBtn;
+	}
+
+	public Button saveNewStudentButton(Stage primaryStage, TextField newUserEmail, PasswordField newUserPassword,
+			TextField newUserName, ComboBox<Integer> newStudentYear) {
+		Button saveNewStudentBtn = new Button("Ruani te dhenat");
+
+		saveNewStudentBtn.setOnAction(e -> {
+			Student newStudent = new Student(newUserName.getText(), newUserEmail.getText(), newUserPassword.getText(),
+					newStudentYear.getValue());
+			MainClass.createNewStudent(newStudent);
+			primaryStage.setScene(adminScene);
+		});
+		return saveNewStudentBtn;
+	}
+
+	public Button addStudentsToCourseButton(ComboBox<String> chooseCourse, TableView<Student> table,
+			TableColumn<Student, Integer> tableCol1, TableColumn<Student, Boolean> checkBoxCol,
+			ArrayList<Integer> idList) {
+		Button addStudentsToCourseBtn = new Button("Shtoni studentet e zgjedhur ne kurs");
+		addStudentsToCourseBtn.setOnAction(actionEvent -> {
+			idList.clear();
+			for (int row = 0; row < table.getItems().size(); row++) {
+				if (checkBoxCol.getCellData(row)) {
+					idList.add(tableCol1.getCellData(row));
+				}
+			}
+			System.out.println(idList);
+			MainClass.addStudentsToCourse(idList, chooseCourse.getValue());
+		});
+		return addStudentsToCourseBtn;
+	}
+
+	public Button signOutButton(Stage primaryStage) {
+		Button signOutBtn = new Button("Dilni nga llogaria");
+
+		signOutBtn.setOnAction(e -> {
+			primaryStage.setScene(loginScene);
+		});
+		return signOutBtn;
+	}
+
+	public Button listStudentsButton(Stage primaryStage) {
+		Button listStudentBtn = new Button("Afisho listen e studenteve");
+		listStudentBtn.setOnAction(e -> {
+			primaryStage.setScene(listStudentsScene);
+		});
+		return listStudentBtn;
+	}
+
+	public Button listStaffButton(Stage primaryStage) {
+		Button listStaffBtn = new Button("Afisho listen e pedagogeve");
+		listStaffBtn.setOnAction(e -> {
+			primaryStage.setScene(listStaffScene);
+		});
+		return listStaffBtn;
+	}
+
+	public Button addStudentButton(Stage primaryStage) {
+		Button addStudentBtn = new Button("Shto student te ri");
+		addStudentBtn.setOnAction(e -> {
+			primaryStage.setScene(createNewStudentScene);
+		});
+		return addStudentBtn;
+	}
+
+	public Button addStaffButton(Stage primaryStage) {
+		Button addStaffBtn = new Button("Shto pedagog te ri");
+		addStaffBtn.setOnAction(e -> {
+			primaryStage.setScene(createNewStaffScene);
+		});
+		return addStaffBtn;
+	}
+
+	public Button showMessagesButton(Stage primaryStage) {
+		Button showMessages = new Button("Shiko mesazhet");
+		showMessages.setOnAction(e -> {
+			primaryStage.setScene(messagesScene);
+
+		});
+		return showMessages;
+	}
+
+	public Button addCourseButton(Stage primaryStage) {
+		Button addCourseBtn = new Button("Krijo nje kurs");
+		addCourseBtn.setOnAction(e -> {
+			primaryStage.setScene(createNewCourseScene);
+		});
+		return addCourseBtn;
+	}
+
+	public Button addStudentToCourseButton(Stage primaryStage) {
+		Button addStudentToCourseBtn = new Button("Shtoni nje student ne kurs");
+		addStudentToCourseBtn.setOnAction(e -> {
+			primaryStage.setScene(addingStudentsToCourseScene);
+		});
+		return addStudentToCourseBtn;
+	}
+
+	public Button editStaffProfileButton(Stage primaryStage) {
+		Button editStaffProfileBtn = new Button("Ndrysho profilin");
+		editStaffProfileBtn.setOnAction(e -> {
+			Pedagog user = (Pedagog) loggedInUser;
+			primaryStage.setScene(createNewStaffScene);
+//			newUserEmail1.setText(user.getEmail());
+//			newUserPassword1.setText(user.getPassword());
+//			newUserName1.setText(user.getName());
+//			newStaffTitle.setText(user.getTitulli());
+//			newStaffCourse.setText(user.getKursStudimi());
+		});
+		return editStaffProfileBtn;
+	}
+
+
+	//
+	// Main
+	//
 
 	public static void main(String[] args) {
 		MainClass.connectToDB();

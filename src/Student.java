@@ -5,7 +5,10 @@ public class Student extends Perdorues {
 	private int year;
 	private SimpleBooleanProperty selected = new SimpleBooleanProperty(false);
 
-	public Student() { }
+	public Student() { 
+		
+	}
+	
 	public Student(String name, String email, String password, int year) {
 		super(name, email, password);
 		this.year = year;

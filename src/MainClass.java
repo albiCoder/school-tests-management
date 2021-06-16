@@ -4,6 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedList;
+
 
 public class MainClass {
 
@@ -385,5 +387,82 @@ public class MainClass {
 		}
 
 		return messagesList;
+	}
+
+	public static ArrayList<KursStudimi> getStudentCoursesList(int studentId) {
+
+		String query = "SELECT DISTINCT(kursstudimi.kursId), kursstudimi.emriKursit FROM `student` INNER JOIN rregjistri ON "
+				+ "student.id = rregjistri.studentId INNER JOIN kursstudimi ON rregjistri.kursId = kursstudimi.kursId WHERE student.id = ?";
+		
+		ArrayList<KursStudimi> coursesList = new ArrayList<>();
+		try {
+			preparedStatement = connection.prepareStatement(query);
+			preparedStatement.setInt(1, studentId);
+			ResultSet rs = preparedStatement.executeQuery();
+
+			KursStudimi kurs;
+			while (rs.next()) {
+				kurs = new KursStudimi(rs.getInt("kursId"), rs.getString("emriKursit"));
+			
+				coursesList.add(kurs);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return coursesList;
+	}
+	
+	public static ArrayList<Test> getCourseTests(int kursId) {
+		String query = "SELECT * FROM test WHERE kursId = ?";
+		
+		ArrayList<Test> testsList = new ArrayList<>();
+		try {
+			preparedStatement = connection.prepareStatement(query);
+			preparedStatement.setInt(1, kursId);
+			ResultSet rs = preparedStatement.executeQuery();
+
+			Test test;
+			while (rs.next()) {
+				test = new Test(rs.getInt("testId"), rs.getString("emertimiTestit"));
+			
+				testsList.add(test);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return testsList;
+	}
+
+	public static LinkedList<Pyetje> getTest(int testId) {
+		String query = "SELECT * FROM pyetje WHERE testId = ?";
+
+		LinkedList<Pyetje> questionsList = new LinkedList<>();
+		try {
+			preparedStatement = connection.prepareStatement(query);
+			preparedStatement.setInt(1, testId);
+			ResultSet rs = preparedStatement.executeQuery();
+
+			Pyetje p;
+			while (rs.next()) {
+				p = new Pyetje(rs.getInt("pyetjeId"), rs.getString("pyetja"), rs.getInt("pergjigjja"));
+			
+				questionsList.add(p);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return questionsList;	
 	}
 }

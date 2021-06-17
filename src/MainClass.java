@@ -6,7 +6,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-
 public class MainClass {
 
 	private static PreparedStatement preparedStatement = null;
@@ -20,40 +19,56 @@ public class MainClass {
 		ResultSet rs = null;
 
 		Student s = null;
-		String query = "SELECT * FROM student WHERE studentid = ?";
+		String query = "SELECT * FROM student WHERE id = ?";
 
 		try {
 			preparedStatement = connection.prepareStatement(query);
 			preparedStatement.setInt(1, studentId);
 
-			rs = preparedStatement.executeQuery(query);
+			rs = preparedStatement.executeQuery();
 
 			if (rs.next()) {
 				s = new Student();
-				s.setId(rs.getInt("studentId"));
+				s.setId(rs.getInt("id"));
 				s.setName(rs.getString("name"));
 				s.setEmail(rs.getString("email"));
 				s.setPassword(rs.getString("password"));
-				s.setYear(1);
+				s.setYear(rs.getInt("year"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
-		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+		} 
 		return s;
+	}
+
+	public static Pedagog getStaff(int staffId) {
+		ResultSet rs = null;
+		
+		Pedagog p = null;
+		String query = "SELECT * FROM pedagog WHERE id = ?";
+		
+		try {
+			preparedStatement = connection.prepareStatement(query);
+			preparedStatement.setInt(1, staffId);
+			
+			rs = preparedStatement.executeQuery();
+			
+			if (rs.next()) {
+				p = new Pedagog();
+				p.setId(rs.getInt("id"));
+				p.setName(rs.getString("name"));
+				p.setEmail(rs.getString("email"));
+				p.setPassword(rs.getString("password"));
+				p.setTitulli(rs.getString("titulli"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} 
+		return p;
 	}
 
 	public static Perdorues logIntoSystem(String loginAccountType, String email, String password) {
 
-		// perdora statement pasi nuk mund te vendos emrin e tabeles me ane te
-		// preparedStatement
 		String query = "SELECT * FROM " + loginAccountType + " WHERE email = ? AND password = ? ;";
 
 		Perdorues user = null;
@@ -99,7 +114,7 @@ public class MainClass {
 			preparedStatement.setString(3, newStaff.getPassword());
 			preparedStatement.setString(4, newStaff.getTitulli());
 
-			preparedStatement.executeQuery();
+			preparedStatement.executeUpdate();
 			System.out.println("New staff member added into database");
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -110,6 +125,7 @@ public class MainClass {
 
 	public static void createNewStudent(Student newStudent) {
 		String query = "INSERT INTO student (name, email, password, year) VALUES(?, ?, ?, ?)";
+
 		try {
 			preparedStatement = connection.prepareStatement(query);
 
@@ -119,7 +135,6 @@ public class MainClass {
 			preparedStatement.setInt(4, newStudent.getYear());
 
 			preparedStatement.executeUpdate();
-			System.out.println("New student added into database");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -154,33 +169,6 @@ public class MainClass {
 		}
 		return staffList;
 	}
-
-//	public static <T extends Perdorues> ArrayList<T> getStaffList(T user) {
-//		String query = "SELECT * FROM pedagog";
-//		
-//		ArrayList<T> staffList = new ArrayList<>();
-//		try {
-//			preparedStatement = connection.prepareStatement(query);
-//			
-//			ResultSet rs = preparedStatement.executeQuery();
-////			T user;
-//			while (rs.next()) {
-//				if(rs.getInt("id") == 0) continue;
-//				
-//				user =(T) new Perdorues();
-//				user.setName(rs.getString("name"));
-//				user.setEmail(rs.getString("email"));
-//				user.setTitulli(rs.getString("titulli"));
-//				staffList.add(user);
-//			} 
-//			
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		return staffList;
-//	}
 
 	public static ArrayList<Student> getStudentsList() {
 		String query = "SELECT * FROM student";
@@ -300,39 +288,6 @@ public class MainClass {
 		return coursesList;
 	}
 
-//	public static ArrayList<KursStudimi> getStaffCourses(int userId) {
-//		String query = "SELECT DISTINCT kursId, emriKursit FROM kursStudimi NATURAL JOIN pedagog WHERE pedagogId=?";
-//		String getStudentsCount = "SELECT COUNT(kursId) FROM kursStudimi";
-//		ArrayList<KursStudimi> coursesList = null;
-//		try {
-//			Statement stat = connection.createStatement();
-//			
-//			ResultSet rs = stat.executeQuery(getStudentsCount);
-//			if(rs.next()) {
-//				coursesList = new ArrayList<>(Integer.parseInt(rs.getString(1)));
-//			} else {
-//				System.out.println("The current staff member does not have any course created");
-//				return null;
-//			}
-//			preparedStatement = connection.prepareStatement(query);
-//			preparedStatement.setInt(1, userId);
-//			rs = preparedStatement.executeQuery();
-//
-//			KursStudimi kurs;
-//			while (rs.next()) {
-//				kurs = new KursStudimi(rs.getInt("kursId"), rs.getString("emriKursit"));
-//				coursesList.add(kurs);
-//			}
-//
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		
-//		return coursesList;
-//	}
-
 	public static void addStudentsToCourse(ArrayList<Integer> idList, String courseName) {
 		String query = "INSERT INTO rregjistri(studentId, kursId) VALUES(?, ?);";
 		String getCourseId = "SELECT kursId FROM `kursstudimi` WHERE emriKursit LIKE ?";
@@ -393,7 +348,7 @@ public class MainClass {
 
 		String query = "SELECT DISTINCT(kursstudimi.kursId), kursstudimi.emriKursit FROM `student` INNER JOIN rregjistri ON "
 				+ "student.id = rregjistri.studentId INNER JOIN kursstudimi ON rregjistri.kursId = kursstudimi.kursId WHERE student.id = ?";
-		
+
 		ArrayList<KursStudimi> coursesList = new ArrayList<>();
 		try {
 			preparedStatement = connection.prepareStatement(query);
@@ -403,7 +358,7 @@ public class MainClass {
 			KursStudimi kurs;
 			while (rs.next()) {
 				kurs = new KursStudimi(rs.getInt("kursId"), rs.getString("emriKursit"));
-			
+
 				coursesList.add(kurs);
 			}
 
@@ -415,10 +370,10 @@ public class MainClass {
 
 		return coursesList;
 	}
-	
+
 	public static ArrayList<Test> getCourseTests(int kursId) {
 		String query = "SELECT * FROM test WHERE kursId = ?";
-		
+
 		ArrayList<Test> testsList = new ArrayList<>();
 		try {
 			preparedStatement = connection.prepareStatement(query);
@@ -428,7 +383,7 @@ public class MainClass {
 			Test test;
 			while (rs.next()) {
 				test = new Test(rs.getInt("testId"), rs.getString("emertimiTestit"));
-			
+
 				testsList.add(test);
 			}
 
@@ -453,7 +408,7 @@ public class MainClass {
 			Pyetje p;
 			while (rs.next()) {
 				p = new Pyetje(rs.getInt("pyetjeId"), rs.getString("pyetja"), rs.getInt("pergjigjja"));
-			
+
 				questionsList.add(p);
 			}
 
@@ -462,7 +417,49 @@ public class MainClass {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		return questionsList;
+	}
+
+	public static void updateStudent(Student loggedInUser) {
+		String query = "UPDATE student SET name=?, email=?, password=?, year=? WHERE id=?";
+
+		try {
+			preparedStatement = connection.prepareStatement(query);
+
+			preparedStatement.setString(1, loggedInUser.getName());
+			preparedStatement.setString(2, loggedInUser.getEmail());
+			preparedStatement.setString(3, loggedInUser.getPassword());
+			preparedStatement.setInt(4, loggedInUser.getYear());
+			preparedStatement.setInt(5, loggedInUser.getId());
+
+			preparedStatement.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public static void updateStaff(Pedagog loggedInUser) {
+		String query = "UPDATE pedagog SET name=?, email=?, password=?, titulli=? WHERE id=?";
 		
-		return questionsList;	
+		try {
+			preparedStatement = connection.prepareStatement(query);
+			
+			preparedStatement.setString(1, loggedInUser.getName());
+			preparedStatement.setString(2, loggedInUser.getEmail());
+			preparedStatement.setString(3, loggedInUser.getPassword());
+			preparedStatement.setString(4, loggedInUser.getTitulli());
+			preparedStatement.setInt(5, loggedInUser.getId());
+			
+			preparedStatement.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 	}
 }

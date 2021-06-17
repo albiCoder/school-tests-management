@@ -9,6 +9,10 @@ public class Student extends Perdorues {
 		
 	}
 	
+	public Student(int id, String name, String email, String password, int year) {
+		super(id, name, email, password);
+		this.year = year;
+	}
 	public Student(String name, String email, String password, int year) {
 		super(name, email, password);
 		this.year = year;

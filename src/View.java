@@ -61,7 +61,6 @@ public class View extends Application {
 		return this.loginType;
 	}
 
-
 	//
 	// Scenes
 	//
@@ -84,6 +83,10 @@ public class View extends Application {
 	Scene testScene = null;
 	Scene coursesListScene = null;
 
+	// scenes history
+	ArrayList<Scene> scenesHistory = new ArrayList<>();
+	int historyIndex = 0;
+
 	//
 	// gui starter
 	//
@@ -97,7 +100,7 @@ public class View extends Application {
 		// set stage
 		//
 		primaryStage.setScene(loginScene);
-		primaryStage.setTitle("Log in");
+		primaryStage.setTitle("Sistem menaxhimi provimesh");
 		primaryStage.show();
 	}
 
@@ -107,10 +110,11 @@ public class View extends Application {
 
 	public void initializeAdminScenes(Stage primaryStage) {
 		adminScene = createAdminScene(primaryStage);
-		createNewStudentScene = addStudentScene(primaryStage);
-		createNewStaffScene = addStaffScene(primaryStage);
 		listStaffScene = getUsersList("staff's members", MainClass.getStaffList(), "Titulli", "Name", "Email");
 		listStudentsScene = getUsersList("students", MainClass.getStudentsList(), "Name", "Email", "Year");
+
+		createNewStudentScene = addStudentScene(primaryStage, null, null, null, null);
+		createNewStaffScene = addStaffScene(primaryStage, null, null, null, null);
 	}
 
 	public void initializeStaffScenes(Stage primaryStage) {
@@ -118,11 +122,17 @@ public class View extends Application {
 		createNewCourseScene = addCourseScene(primaryStage);
 		addingStudentsToCourseScene = addStudentsToCourseScene(primaryStage);
 		messagesScene = listMessagesScene(primaryStage);
+
+		Pedagog p = MainClass.getStaff(loggedInUser.getId());
+		createNewStaffScene = addStaffScene(primaryStage, p.getEmail(), p.getPassword(), p.getName(), p.getTitulli());
 	}
 
 	public void initializeStudentScenes(Stage primaryStage) {
 		studentScene = createStudentScene(primaryStage);
 		coursesListScene = coursesListScene(primaryStage);
+
+		Student s = MainClass.getStudent(loggedInUser.getId());
+		createNewStudentScene = addStudentScene(primaryStage, s.getEmail(), s.getPassword(), s.getName(), s.getYear());
 	}
 
 	//
@@ -171,11 +181,12 @@ public class View extends Application {
 		return new Scene(createNewCourseForm, appWidth, appHeight);
 	}
 
-	public Scene addStaffScene(Stage primaryStage, String email, String name, String title) {
-		Text sceneInfoText = sceneInfoText("Plotesoni te dhenat per pedagogun e ri");
+	public Scene addStaffScene(Stage primaryStage, String email, String password, String name, String title) {
+		Text sceneInfoText = sceneInfoText("Plotesoni te dhenat per pedagogun " + name != null ? name : "e ri");
 
 		TextField newUserEmail = new TextField(email != null ? email : "");
 		PasswordField newUserPassword = new PasswordField();
+		newUserPassword.setText(password != null ? password : "");
 		TextField newUserName = new TextField(name != null ? name : "");
 
 		HBox newUserNameFields = new HBox();
@@ -195,11 +206,11 @@ public class View extends Application {
 		newStaffTitleFields.setAlignment(Pos.CENTER);
 
 		Button saveNewStaffBtn = saveNewStaffButton(primaryStage, newUserEmail, newUserPassword, newUserName,
-				newStaffTitle);
+				newStaffTitle, name);
 
 		VBox createNewStaffForm = new VBox();
-		createNewStaffForm.getChildren().addAll(newUserNameFields, newUserEmailFields, newUserPasswordFields,
-				newStaffTitleFields, saveNewStaffBtn);
+		createNewStaffForm.getChildren().addAll(sceneInfoText, newUserNameFields, newUserEmailFields,
+				newUserPasswordFields, newStaffTitleFields, saveNewStaffBtn);
 		createNewStaffForm.setSpacing(20);
 		createNewStaffForm.setAlignment(Pos.CENTER);
 
@@ -207,11 +218,12 @@ public class View extends Application {
 
 	}
 
-	public Scene addStudentScene(Stage primaryStage, String email, String name, Integer year) {
-		Text sceneInfoText = sceneInfoText("Plotesoni te dhenat per studentin e ri");
+	public Scene addStudentScene(Stage primaryStage, String email, String password, String name, Integer year) {
+		Text sceneInfoText = sceneInfoText("Plotesoni te dhenat per studentin " + name != null ? name : "e ri");
 
 		TextField newUserEmail = new TextField(email != null ? email : "");
 		PasswordField newUserPassword = new PasswordField();
+		newUserPassword.setText(password != null ? password : "");
 		TextField newUserName = new TextField(name != null ? name : "");
 
 		HBox newUserNameFields = new HBox();
@@ -223,7 +235,7 @@ public class View extends Application {
 		HBox newUserPasswordFields = new HBox();
 		newUserPasswordFields.getChildren().addAll(new Label("Fjalekalimi: "), newUserPassword);
 		newUserPasswordFields.setAlignment(Pos.CENTER);
-
+		System.out.println(year);
 		ComboBox<Integer> newStudentYear = new ComboBox<>();
 		newStudentYear.getItems().addAll(1, 2, 3, 4, 5);
 		newStudentYear.setValue(year != null ? year : 1);
@@ -233,11 +245,11 @@ public class View extends Application {
 		newStudentYearFields.setAlignment(Pos.CENTER);
 
 		Button saveNewStudentBtn = saveNewStudentButton(primaryStage, newUserEmail, newUserPassword, newUserName,
-				newStudentYear);
+				newStudentYear, name);
 
 		VBox createNewStudentForm = new VBox();
-		createNewStudentForm.getChildren().addAll(newUserNameFields, newUserEmailFields, newUserPasswordFields,
-				newStudentYearFields, saveNewStudentBtn);
+		createNewStudentForm.getChildren().addAll(sceneInfoText, newUserNameFields, newUserEmailFields,
+				newUserPasswordFields, newStudentYearFields, saveNewStudentBtn);
 		createNewStudentForm.setSpacing(20);
 		createNewStudentForm.setAlignment(Pos.CENTER);
 
@@ -245,11 +257,9 @@ public class View extends Application {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	public Scene addStudentsToCourseScene(Stage primaryStage) {
-		Text txt = new Text("Shtoni student ne nje kurs");
-		txt.setFont(Font.font("Abyssinica SIL", FontWeight.BOLD, FontPosture.REGULAR, 25));
-		txt.setFill(Color.BLUE);// setting color of the text to blue
-		txt.setStroke(Color.BLUE);// setting the stroke for the text
+		Text txt = sceneInfoText("Shtoni student ne nje kurs");
 
 		ComboBox<String> chooseCourse = new ComboBox<>();
 
@@ -258,12 +268,6 @@ public class View extends Application {
 			chooseCourse.getItems().add(coursesList[i]);
 		}
 		chooseCourse.setValue(coursesList[0]);
-
-//		ArrayList<KursStudimi> coursesList = MainClass.getStaffCourses(2);
-//		for (int i = 0; i < coursesList.size(); i++) {
-//			chooseCourse.getItems().addAll((Collection<? extends String>) coursesList.get(i));
-//		}
-//		chooseCourse.setValue(coursesList.get(0).getEmriKursit());
 
 		TableView<Student> table = new TableView<>();
 		ObservableList<Student> data = FXCollections.observableArrayList(MainClass.getStudentsList());
@@ -281,7 +285,7 @@ public class View extends Application {
 		checkBoxCol.setEditable(true);
 
 		ArrayList<Integer> idList = new ArrayList<>();
-		Button addStudentsToCourseBtn = addStudentsToCourseButton(chooseCourse, table, tableCol1, checkBoxCol, idList);
+		Button addStudentsToCourseBtn = addStudentsToCourseButton(primaryStage, chooseCourse, table, tableCol1, checkBoxCol, idList);
 
 		table.setItems(data);
 		table.getColumns().addAll(tableCol1, tableCol2, checkBoxCol);
@@ -295,6 +299,8 @@ public class View extends Application {
 	}
 
 	public Scene createAdminScene(Stage primaryStage) {
+		Text sceneInfoText = sceneInfoText("Llogari administratori");
+		
 		Button addStaffBtn = addStaffButton(primaryStage);
 		Button addStudentBtn = addStudentButton(primaryStage);
 		Button listStaffBtn = listStaffButton(primaryStage);
@@ -302,7 +308,7 @@ public class View extends Application {
 		Button signOutBtn = signOutButton(primaryStage);
 
 		VBox adminToolbars = new VBox(20);
-		adminToolbars.getChildren().addAll(addStaffBtn, addStudentBtn, listStaffBtn, listStudentBtn);
+		adminToolbars.getChildren().addAll(sceneInfoText, addStaffBtn, addStudentBtn, listStaffBtn, listStudentBtn);
 		adminToolbars.setAlignment(Pos.CENTER);
 
 		BorderPane adminPage = new BorderPane();
@@ -324,7 +330,7 @@ public class View extends Application {
 		ComboBox<String> chooseAccountType = new ComboBox<>();
 		chooseAccountType.getItems().addAll(accountType.Student.toString(), accountType.Pedagog.toString(),
 				accountType.Administrator.toString());
-		chooseAccountType.setValue(accountType.Student.toString());
+		chooseAccountType.setValue(accountType.Pedagog.toString());
 
 		Button loginBtn = loginButton(primaryStage, errorMessage, email, password, chooseAccountType);
 
@@ -344,13 +350,15 @@ public class View extends Application {
 	}
 
 	public Scene createStaffScene(Stage primaryStage) {
+		Text sceneInfoText = sceneInfoText("Llogari pedagogu");
+		
 		Button editStaffProfileBtn = editStaffProfileButton(primaryStage);
 		Button addStudentToCourseBtn = addStudentToCourseButton(primaryStage);
 		Button addCourseBtn = addCourseButton(primaryStage);
 		Button showMessages = showMessagesButton(primaryStage);
 
 		VBox staffToolbars = new VBox(20);
-		staffToolbars.getChildren().addAll(editStaffProfileBtn, addCourseBtn, addStudentToCourseBtn, showMessages);
+		staffToolbars.getChildren().addAll(sceneInfoText, editStaffProfileBtn, addCourseBtn, addStudentToCourseBtn, showMessages);
 		staffToolbars.setAlignment(Pos.CENTER);
 
 		BorderPane staffPage = new BorderPane();
@@ -361,9 +369,11 @@ public class View extends Application {
 	}
 
 	public Scene createStudentScene(Stage primaryStage) {
-
+		Text sceneInfoText = sceneInfoText("Llogari studenti");
+		
 		Button editStudentProfileBtn = new Button("Ndrysho profilin");
 		editStudentProfileBtn.setOnAction(e -> {
+			primaryStage.setScene(createNewStudentScene);
 
 		});
 		Button chooseTestBtn = new Button("Zgjidhni nje test");
@@ -373,7 +383,6 @@ public class View extends Application {
 		});
 		Button listResultsBtn = new Button("Shfaq rezultatet");
 		listResultsBtn.setOnAction(e -> {
-
 		});
 		Button createMessageBtn = new Button("Dergo nje mesazh pedagogut");
 		createMessageBtn.setOnAction(e -> {
@@ -381,7 +390,7 @@ public class View extends Application {
 		});
 
 		VBox studentToolbars = new VBox(20);
-		studentToolbars.getChildren().addAll(editStudentProfileBtn, chooseTestBtn, listResultsBtn, createMessageBtn);
+		studentToolbars.getChildren().addAll(sceneInfoText, editStudentProfileBtn, chooseTestBtn, listResultsBtn, createMessageBtn);
 		studentToolbars.setAlignment(Pos.CENTER);
 
 		BorderPane studentPage = new BorderPane();
@@ -396,6 +405,7 @@ public class View extends Application {
 	// listing
 	//
 
+	@SuppressWarnings("unchecked")
 	public Scene listMessagesScene(Stage primaryStage) {
 		Text mssText = sceneInfoText("Mesazhet tuaja");
 
@@ -427,6 +437,7 @@ public class View extends Application {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	public Scene coursesListScene(Stage primaryStage) {
 		TableView<KursStudimi> enrolledCourseTbl = new TableView<>();
 		ObservableList<KursStudimi> enrolledCourseData = FXCollections
@@ -455,9 +466,8 @@ public class View extends Application {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	private void listCourseTests(int kursId, VBox tests, Stage primaryStage) {
-		ArrayList<Test> testsList = MainClass.getCourseTests(kursId);
-
 		tests.getChildren().clear();
 		tests.getChildren().add(new Text("Testet per kete kurs: "));
 
@@ -479,6 +489,7 @@ public class View extends Application {
 		this.<Test>addButtonToTable(enrolledTestsTbl, "Zgjidhni Testin", tests, "TestListTable", primaryStage);
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T> Scene getUsersList(String text, ArrayList<T> list, String Col1, String Col2, String Col3) {
 		Text sceneInfoText = sceneInfoText("All " + text);
 
@@ -508,6 +519,7 @@ public class View extends Application {
 		return listingScene;
 	}
 
+	@SuppressWarnings("unchecked")
 	private void openTestScene(int testId, Stage primaryStage) {
 		Test test = new Test();
 		test.setPyetjet(MainClass.getTest(testId));
@@ -561,7 +573,7 @@ public class View extends Application {
 		return 0;
 	}
 
-	private String getTestPoints(ArrayList<Integer> answersList, LinkedList<Pyetje> questions) {
+	public String getTestPoints(ArrayList<Integer> answersList, LinkedList<Pyetje> questions) {
 		final int POINT_PER_QUESTION = 1;
 		final int TOTAL_POINTS = POINT_PER_QUESTION * questions.size();
 
@@ -589,9 +601,9 @@ public class View extends Application {
 		return kursId;
 	}
 
-	private <T> void addButtonToTable(TableView table, String buttonText, VBox tests, String tableName,
+	public <T> void addButtonToTable(TableView<T> table, String buttonText, VBox tests, String tableName,
 			Stage primaryStage) {
-		TableColumn<T, Void> colBtn = new TableColumn("Button Column");
+		TableColumn<T, Void> colBtn = new TableColumn<>("Button Column");
 
 		Callback<TableColumn<T, Void>, TableCell<T, Void>> cellFactory = new Callback<TableColumn<T, Void>, TableCell<T, Void>>() {
 			@Override
@@ -631,6 +643,16 @@ public class View extends Application {
 
 		table.getColumns().add(colBtn);
 
+	}
+
+	//
+	// History
+	//
+
+	public void pushHistory(Stage primaryStage, Scene scene) {
+		scenesHistory.add(scene);
+		historyIndex++;
+		primaryStage.setScene(scene);
 	}
 
 	//
@@ -740,33 +762,60 @@ public class View extends Application {
 	}
 
 	public Button saveNewStaffButton(Stage primaryStage, TextField newUserEmail, PasswordField newUserPassword,
-			TextField newUserName, TextField newStaffTitle) {
-		Button saveNewStaffBtn = new Button("Ruani te dhenat");
+			TextField newUserName, TextField newStaffTitle, String name) {
 
-		saveNewStaffBtn.setOnAction(e -> {
-//			 duhet krijuar kursi perpara pedagogut
-			Pedagog newStaff = new Pedagog(newUserName.getText(), newUserEmail.getText(), newUserPassword.getText(),
-					newStaffTitle.getText());
-			MainClass.createNewStaff(newStaff);
-			primaryStage.setScene(adminScene);
-		});
-		return saveNewStaffBtn;
+		if (name == null) {
+			Button saveNewStaffBtn = new Button("Ruani te dhenat");
+
+			saveNewStaffBtn.setOnAction(e -> {
+				Pedagog newStaff = new Pedagog(newUserName.getText(), newUserEmail.getText(), newUserPassword.getText(),
+						newStaffTitle.getText());
+				MainClass.createNewStaff(newStaff);
+				primaryStage.setScene(adminScene);
+			});
+			return saveNewStaffBtn;
+		} else {
+			Button updateStaffBtn = new Button("Ndryshoni te dhenat");
+
+			updateStaffBtn.setOnAction(e -> {
+				loggedInUser = new Pedagog(loggedInUser.getId(), newUserName.getText(), newUserEmail.getText(),
+						newUserPassword.getText(), newStaffTitle.getText());
+				MainClass.updateStaff((Pedagog) loggedInUser);
+				primaryStage.setScene(staffScene);
+			});
+
+			return updateStaffBtn;
+		}
 	}
 
 	public Button saveNewStudentButton(Stage primaryStage, TextField newUserEmail, PasswordField newUserPassword,
-			TextField newUserName, ComboBox<Integer> newStudentYear) {
-		Button saveNewStudentBtn = new Button("Ruani te dhenat");
+			TextField newUserName, ComboBox<Integer> newStudentYear, String name) {
+		if (name == null) {
+			Button saveNewStudentBtn = new Button("Ruani te dhenat");
 
-		saveNewStudentBtn.setOnAction(e -> {
-			Student newStudent = new Student(newUserName.getText(), newUserEmail.getText(), newUserPassword.getText(),
-					newStudentYear.getValue());
-			MainClass.createNewStudent(newStudent);
-			primaryStage.setScene(adminScene);
-		});
-		return saveNewStudentBtn;
+			saveNewStudentBtn.setOnAction(e -> {
+				Student s = new Student(newUserName.getText(), newUserEmail.getText(), newUserPassword.getText(),
+						newStudentYear.getValue());
+				MainClass.createNewStudent(s);
+				primaryStage.setScene(adminScene);
+			});
+
+			return saveNewStudentBtn;
+		} else {
+			Button updateStudentBtn = new Button("Ndryshoni te dhenat");
+
+			updateStudentBtn.setOnAction(e -> {
+				loggedInUser = new Student(loggedInUser.getId(), newUserName.getText(), newUserEmail.getText(),
+						newUserPassword.getText(), newStudentYear.getValue());
+				MainClass.updateStudent((Student) loggedInUser);
+				primaryStage.setScene(studentScene);
+			});
+
+			return updateStudentBtn;
+		}
 	}
 
-	public Button addStudentsToCourseButton(ComboBox<String> chooseCourse, TableView<Student> table,
+	public Button addStudentsToCourseButton(Stage primaryStage, ComboBox<String> chooseCourse, TableView<Student> table,
 			TableColumn<Student, Integer> tableCol1, TableColumn<Student, Boolean> checkBoxCol,
 			ArrayList<Integer> idList) {
 		Button addStudentsToCourseBtn = new Button("Shtoni studentet e zgjedhur ne kurs");
@@ -779,6 +828,7 @@ public class View extends Application {
 			}
 			System.out.println(idList);
 			MainClass.addStudentsToCourse(idList, chooseCourse.getValue());
+			primaryStage.setScene(staffScene);
 		});
 		return addStudentsToCourseBtn;
 	}
@@ -842,7 +892,7 @@ public class View extends Application {
 	}
 
 	public Button addStudentToCourseButton(Stage primaryStage) {
-		Button addStudentToCourseBtn = new Button("Shtoni nje student ne kurs");
+		Button addStudentToCourseBtn = new Button("Shtoni student ne kurs");
 		addStudentToCourseBtn.setOnAction(e -> {
 			primaryStage.setScene(addingStudentsToCourseScene);
 		});
@@ -852,17 +902,30 @@ public class View extends Application {
 	public Button editStaffProfileButton(Stage primaryStage) {
 		Button editStaffProfileBtn = new Button("Ndrysho profilin");
 		editStaffProfileBtn.setOnAction(e -> {
-			Pedagog user = (Pedagog) loggedInUser;
 			primaryStage.setScene(createNewStaffScene);
-//			newUserEmail1.setText(user.getEmail());
-//			newUserPassword1.setText(user.getPassword());
-//			newUserName1.setText(user.getName());
-//			newStaffTitle.setText(user.getTitulli());
-//			newStaffCourse.setText(user.getKursStudimi());
 		});
 		return editStaffProfileBtn;
 	}
 
+	public Button goBackButton(Stage primaryStage) {
+		Button goBackBtn = new Button("Back");
+
+		goBackBtn.setOnAction(e -> {
+			primaryStage.setScene(scenesHistory.get(--historyIndex));
+		});
+
+		return goBackBtn;
+	}
+
+	public Button goForwardButton(Stage primaryStage) {
+		Button goForwardBtn = new Button("Forward");
+
+		goForwardBtn.setOnAction(e -> {
+			primaryStage.setScene(scenesHistory.get(++historyIndex));
+		});
+
+		return goForwardBtn;
+	}
 
 	//
 	// Main

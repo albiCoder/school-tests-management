@@ -4,7 +4,7 @@ public class Test {
 	private int testId;
 	private String emertimiTestit;
 	private int pedagogId;
-	private LinkedList<Pyetje> pyetje = new LinkedList<>();
+	private LinkedList<Pyetje> pyetjet = new LinkedList<>();
 
 	public Test(String emertimiTestit) {
 		this.emertimiTestit = emertimiTestit;
@@ -12,6 +12,11 @@ public class Test {
 
 	public Test() {
 		// TODO Auto-generated constructor stub
+	}
+
+	public Test(int testId, String emertimiTestit) {
+		this.testId = testId;
+		this.emertimiTestit = emertimiTestit;
 	}
 
 	public int getTestId() {
@@ -23,11 +28,11 @@ public class Test {
 	}
 
 	public LinkedList<Pyetje> getPyetje() {
-		return pyetje;
+		return pyetjet;
 	}
 
-	public void setPyetje(LinkedList<Pyetje> pyetje) {
-		this.pyetje = pyetje;
+	public void setPyetjet(LinkedList<Pyetje> pyetjet) {
+		this.pyetjet = pyetjet;
 	}
 
 	public int getPedagogId() {
@@ -44,5 +49,15 @@ public class Test {
 
 	public void setEmertimiTestit(String emertimiTestit) {
 		this.emertimiTestit = emertimiTestit;
+	}
+
+	@Override
+	public String toString() {
+		String result = "TestId: " + testId + ", emertimiTestit: " + emertimiTestit + ", pedagogId: " + pedagogId
+				+ ", -->";
+		for (int i = 0; i < pyetjet.size(); i++) {
+			result += pyetjet.get(i).toString();
+		}
+		return result;
 	}
 }
